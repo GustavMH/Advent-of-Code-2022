@@ -3,31 +3,10 @@
 (defn parse-int [s]
   (Integer/parseInt s))
 
-(def commands (-> "$ cd /
-$ ls
-dir a
-14848514 b.txt
-8504156 c.dat
-dir d
-$ cd a
-$ ls
-dir e
-29116 f
-2557 g
-62596 h.lst
-$ cd e
-$ ls
-584 i
-$ cd ..
-$ cd ..
-$ cd d
-$ ls
-4060174 j
-8033020 d.log
-5626152 d.ext
-7214296 k"
-                 (str/split #"\$ ")
-                 rest))
+(def commands (-> (slurp "input_7")
+                  (str/split #"\$ ")
+                  rest))
+
 
 (defn process-command-str [command-str]
      (let [cmd (second (re-find #"^(\w+)" command-str))]
@@ -38,16 +17,42 @@ $ ls
                          rest
                          (filter (comp not (partial re-find #"^dir")))
                          (map (partial re-find #"^\d+"))
-                         (map parse-int))])))
+                         (map parse-int)
+                         (reduce +))])))
 
-(map process-command-str commands)
+(defn path [path cmd]
+  (cond
+    (= cmd ["cd" ".."]) (rest path)
+    (= (first cmd) "cd") (cons (second cmd) path)
+    :else path))
 
-(defn make-tree
-  ([] nil)
-  ([[[cmd args] rst-commands]]
-   (case cmd
-     "cd" (if (not= args "..")
-            (make-tree rst-commands))
-     "ls" (into [] args))))
 
-(make-tree commands)
+(def processed-cmds (map process-command-str commands))
+
+(def paths
+  (->>
+    processed-cmds
+    (reductions path '())
+    (map vector processed-cmds)
+    (filter #(not= "cd" (first (first %))))
+    (map #(vector ((comp second first) %) (second %)))))
+
+(def dir-sizes
+  (->> paths
+       (map (fn [[size p]] (->> (filter (fn [[_ path]] (= (reverse p) (take (count p) (reverse path)))) paths)
+                                (map first)
+                                (reduce +))))))
+(->> dir-sizes ; Q1
+     (filter (partial > 100000))
+     (reduce +))
+
+(def space-needed
+  (->> paths
+       (map first)
+       (reduce +)
+       (- 70000000)
+       (- 30000000)))
+
+(->> dir-sizes ; Q2
+     (filter (partial < space-needed))
+     (apply min))
