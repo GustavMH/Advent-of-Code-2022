@@ -27,13 +27,24 @@
      (apply map list)
      (map (partial reduce #(or %1 %2)))
      (filter identity)
-     count)
+     count) ; => 1794
 
-(def tst (->> "3212" (map identity)))
+(defn part-visible [[head & tail]]
+  (->> (take-while (partial > head) tail)
+       count
+       (#(if (= % (count tail)) % (inc %)))))
 
-(->> (iterate rest tst)
-     (take (count tst))
-     vector
-     (map trees-visible)
-     first
-     (map (comp count (partial filter identity))))
+(defn line-visible [line]
+  (->> line
+       (#(take (count %) (iterate rest %)))
+       (map part-visible)))
+
+(->> (str->array (slurp "input_8"))
+     (map #(->> (map (comp inc parse-int str) %)))
+     (iterate rotate)
+     (take 4)
+     (map (partial map line-visible))
+     (map #(flatten (nth (iterate rotate %2) %1)) [0 3 2 1])
+     (apply map list)
+     (map (partial reduce *))
+     (apply max)) ; => 199272
