@@ -3,9 +3,7 @@
 (defn parse-int [s]
   (Integer/parseInt s))
 
-(def steps
-  (->> ;(slurp "input_9")
-       "R 4
+"R 4
 U 4
 L 3
 D 1
@@ -13,21 +11,33 @@ R 4
 D 1
 L 5
 R 2"
+
+(def steps
+  (->> (slurp "input_9")
        str/split-lines
        (map (fn [[d _ n]] [d (parse-int (str n))]))))
 
 (def moves {\L [-1 0] \R [1 0] \U [0 1] \D [0 -1]})
 
-(defn step-head [pos dir]
+(defn step-forward [pos dir]
   (map + pos (get moves dir)))
 
-(defn step-tail [[x y] [hx hy]]
-  ;(println "Move" (- x hx) (- y hy))
-  (if (not (or (< 1 (abs (- x hx)))
-               (< 1 (abs (- y hy))))) [x y]
-      (if (not= 0 (* (- x hx) (- y hy)))
-          (map - [hx hy] (get moves dir))
-          (map + [x  y ] (get moves dir)))))
+(defn step-back [pos dir]
+  (map - pos (get moves dir)))
+
+(defn step-tail [[x y] [hx hy] dir]
+  (let [dx (abs (- hx x))
+        dy (abs (- hy y))]
+    (cond
+      (and (>= 1 dx)
+           (>= 1 dy)) [x y]
+      (or (>= 1 dx)
+          (>= 1 dy)) (step-back [hx hy] dir)
+      :else [x y])))
+
+[(step-tail [0 0] [1 2] \U)
+ (step-tail [0 0] [1 1] \U)
+ (step-tail [0 0] [0 -2] \D)]
 
 (->> (do-steps steps [0 0] [0 0] #{}) count)
 
