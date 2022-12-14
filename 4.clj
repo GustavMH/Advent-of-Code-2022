@@ -1,8 +1,5 @@
 (require '[clojure.string :as str])
 
-(defn parse-int [s]
-  (Integer/parseInt s))
-
 (defn full-overlap?
   "Does interval [x:y] fully overlap with [a:b]?"
   [[a b] [x y]]
@@ -10,16 +7,21 @@
       (and (>= a x) (<= b y))))
 
 (defn any-overlap?
+  "Does interval [x:y] have any overlap with [a:b]?"
   [[a b] [x y]]
   (and (>= b x) (<= a y)))
 
-(->> (slurp "input_4")
-     str/split-lines
-     (map #(->> %
-                (re-find #"(\d+)-(\d+),(\d+)-(\d+)")
-                rest
-                (map parse-int)
-                (partition 2)
-                (apply any-overlap?)))
-     (filter identity)
-     count)
+(def input
+  "Split into a list of pairs of intervals"
+  (->> (slurp "input_4")
+       str/split-lines
+       (map #(->> (rest (re-find #"(\d+)-(\d+),(\d+)-(\d+)" %))
+                  (map (fn [s] (Integer/parseInt s)))
+                  (partition 2)))))
+
+(defn count-overlap [input overlap?]
+  (->> (map (partial apply full-overlap?) input)
+       (filter identity) count))
+
+(count-overlap input full-overlap?) ; Q1 count of full interval pair overlap
+(count-overlap input any-overlap?)  ; Q2 count of partial interval pair overlap
