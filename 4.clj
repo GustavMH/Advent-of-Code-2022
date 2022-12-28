@@ -20,7 +20,7 @@
                   (partition 2)))))
 
 (defn count-overlap [input overlap?]
-  (->> (map (partial apply full-overlap?) input)
+  (->> (map (partial apply overlap?) input)
        (filter identity) count))
 
 (count-overlap input full-overlap?) ; Q1 count of full interval pair overlap
