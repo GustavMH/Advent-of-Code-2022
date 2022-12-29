@@ -3,86 +3,51 @@
 (defn parse-int [s]
   (Integer/parseInt s))
 
-(def test "[1,1,3,1,1]
-[1,1,5,1,1]
-
-[[1],[2,3,4]]
-[[1],4]
-
-[9]
-[[8,7,6]]
-
-[[4,4],4,4]
-[[4,4],4,4,4]
-
-[7,7,7,7]
-[7,7,7]
-
-[]
-[3]
-
-[[[]]]
-[[]]
-
-[1,[2,[3,[4,[5,6,7]]]],8,9]
-[1,[2,[3,[4,[5,6,0]]]],8,9]
-
-")
-
-(defn false-transpose [a b]
-  (map-indexed (fn [idx item] (vector item (nth b idx false))) a))
-
 (defn distress-comp [a b]
-  (println a b)
-  (cond (and (integer? a) (integer? b))
-        (<= a b)
-        (and (coll? a) (coll? b))
-        (->> (false-transpose a b))
-             ;(drop-while (partial apply distress-comp)))
-             ;empty?)
-        (integer? a)
-        (distress-comp [a] b)
-        (integer? b)
-        (distress-comp a [b])))
+  ;(println a b)
+  (cond
+    ;If both values are integers, the lower integer should come first.
+    (and (integer? a) (integer? b)) (- a b)
+    ;If both values are lists, compare the first value of each list,
+    ;then the second value, and so on.
+    (and (coll? a) (coll? b))
+    (let [[x & xs] a
+          [y & ys] b
+          comp (distress-comp x y)]
+      (if (zero? comp)
+        (distress-comp xs ys)
+        comp))
+    (and (nil? a) (nil? b)) 0
+    ;If the left list runs out of items first,
+    ;the inputs are in the right order.
+    (nil? a) -1
+    (nil? b) 1
+    ;If exactly one value is an integer,
+    ;convert the integer to a list which
+    ;contains that integer as its only value
+    (integer? a) (distress-comp [a] b)
+    (integer? b) (distress-comp a [b])))
 
-(defn distress-comp
-  ([] 0)
-  ([a b]
-   (println a b)
-   (cond
-     (false? b) 1
-     (and (integer? a) (integer? b))
-     (- a b)
-     (and (coll? a) (coll? b))
-     (->> (false-transpose a b)
-          (drop-while (comp zero? (partial apply distress-comp)))
-          (#(if (nil? %) true
-                (apply distress-comp (first %)))))
-     (integer? a)
-     (distress-comp [a] b)
-     (integer? b)
-     (distress-comp a [b]))))
+(def input)
 
-
-(distress-comp [2 3 4] 4)
-(distress-comp [7 7 7 7] [7 7 7])
-(distress-comp 1 2)
-(distress-comp [7 7 7] [7 7 7])
-(distress-comp [] [3])
-(distress-comp [[[]]] [[]])
-(distress-comp [1 1 3 1 1] [1 1 5 1 1])
-(distress-comp [[1],[2,3,4]] [[1],4])
-
-(false-transpose [7 7 7 7] [7 7 7])
-(false-transpose [] [4])
-
-(map list [[1],[2,3,4]] [[1],4])
-
-(->> test
+(->> (slurp "input_13") ; Q1
      (re-seq #"(.+?)\n(.+?)\n\n")
      (map rest)
      (map (partial map read-string))
      (map (partial apply distress-comp))
-     (map (partial >= 0)))
+     (map-indexed #(vector (> 0 %2) (inc %1)))
+     (filter first)
+     (map second)
+     (reduce +)) ; => 6369
 
-; true true false true false true false false
+(def sorted-idxs
+  (->> (slurp "input_13")
+       str/split-lines
+       (filter (partial not= ""))
+       (map (partial read-string))
+       (#(conj % [[2]] [[6]]))
+       (sort distress-comp)
+       (map-indexed (fn [idx val] [idx val]))))
+
+(* (inc (first (first (filter (fn [[idx val]] (= val [[2]])) sorted-idxs))))
+   (inc (first (first (filter (fn [[idx val]] (= val [[6]])) sorted-idxs))))) ; => 25800
